@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · Health Report</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script>
+<script type="module" src="/app/signin.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <div class="auth">
+    <div class="sec-head">
+      <p class="eyebrow">Health report</p>
+      <h1>Sign in</h1>
+      <p class="sub">This dashboard is private. Only the owner's account can sign in.</p>
+    </div>
+    <form id="signin-form" class="card" novalidate>
+      <label for="email">Email<input id="email" name="email" type="email" autocomplete="username" required></label>
+      <label for="password">Password<input id="password" name="password" type="password" autocomplete="current-password" minlength="10" required></label>
+      <button class="btn" type="submit">Sign in</button>
+      <button class="btn secondary" type="button" id="create-account" hidden>Create my account</button>
+      <p class="msg" id="signin-msg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</main>
+</body>
+</html>
