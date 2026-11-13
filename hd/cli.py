@@ -27,6 +27,14 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    if args.command == "inventory":
+        from hd.inventory import format_report, inventory
+
+        if not args.zip_path.is_file():
+            print(f"No file at {args.zip_path}", file=sys.stderr)
+            return 1
+        print(format_report(inventory(args.zip_path)))
+        return 0
     print(f"hd {args.command}: not implemented yet", file=sys.stderr)
     return 2
 
