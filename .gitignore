@@ -1,0 +1,11 @@
+# Private health data and secrets — never commit
+.env
+data/
+out/
+*.db
+config.toml
+
+# Python / tooling
+.venv/
+__pycache__/
+.pytest_cache/
