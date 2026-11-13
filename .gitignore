@@ -9,3 +9,7 @@ config.toml
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Node / Vercel
+node_modules/
+.vercel/

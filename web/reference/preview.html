@@ -1,0 +1,647 @@
+<title>Health Report Preview</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one calm scrolling report — summary first (index, tiles), then Health → Recovery → Energy → Running */
+:root {
+  --bg: #f4f6f4;
+  --surface: #fcfcfb;
+  --ink: #151917;
+  --ink-2: #4b5450;
+  --muted: #5f6964;
+  --line: #e2e6e2;
+  --line-strong: #c9cfca;
+  --s-blue: #2a78d6;
+  --s-orange: #eb6834;
+  --s-aqua: #1baf7a;
+  --band: rgba(42, 120, 214, 0.12);
+  --good: #0a7f0a;
+  --worse: #b5541f;
+  --banner-bg: #e8eef8;
+  --banner-ink: #1c3f6e;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111413; --surface: #1a1d1c; --ink: #eef1ef; --ink-2: #c3cac6; --muted: #a3aca7;
+    --line: #2b302e; --line-strong: #3d4441;
+    --s-blue: #3987e5; --s-orange: #d95926; --s-aqua: #199e70; --band: rgba(57, 135, 229, 0.16);
+    --good: #4cc24c; --worse: #ec835a; --banner-bg: #1d2a3b; --banner-ink: #cfe0f7;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111413; --surface: #1a1d1c; --ink: #eef1ef; --ink-2: #c3cac6; --muted: #a3aca7;
+  --line: #2b302e; --line-strong: #3d4441;
+  --s-blue: #3987e5; --s-orange: #d95926; --s-aqua: #199e70; --band: rgba(57, 135, 229, 0.16);
+  --good: #4cc24c; --worse: #ec835a; --banner-bg: #1d2a3b; --banner-ink: #cfe0f7;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 30px; font-weight: 700; }
+h2 { font-size: 21px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; font-family: var(--font-body); letter-spacing: 0; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.sub { color: var(--muted); font-size: 14px; max-width: 68ch; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+
+.banner { background: var(--banner-bg); color: var(--banner-ink); border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+header.top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; }
+header.top .meta { display: flex; flex-direction: column; gap: 4px; }
+.seg { display: inline-flex; background: var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { min-height: 40px; min-width: 52px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--ink-2); font: 500 14px var(--font-body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.seg button:focus-visible, input:focus-visible, .linkbtn:focus-visible { outline: 2px solid var(--s-blue); outline-offset: 2px; }
+
+section { display: flex; flex-direction: column; gap: 16px; }
+.sec-head { display: flex; flex-direction: column; gap: 4px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.tile { display: flex; flex-direction: column; gap: 4px; }
+.tile .label { font-size: 13px; color: var(--muted); }
+.tile .value { font-family: var(--font-display); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .value small { font-family: var(--font-body); font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.tile .delta { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+figcaption .unit { color: var(--muted); font-size: 13px; }
+.chart { width: 100%; min-height: 60px; }
+.chart svg { display: block; overflow: visible; }
+.key { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+.key i { display: inline-block; width: 16px; height: 0; border-top: 2px solid; }
+.key i.thin { border-top-width: 1px; opacity: .55; }
+.key i.sq { width: 10px; height: 10px; border: 0; border-radius: 2px; }
+.note { font-size: 13px; color: var(--muted); }
+.callout { font-size: 14px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 12px; }
+
+.index-wrap { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .index-wrap { grid-template-columns: 1fr; } }
+.index-now { display: flex; align-items: baseline; gap: 10px; }
+.index-now .big { font-family: var(--font-display); font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+.components { display: flex; flex-direction: column; gap: 10px; }
+.comp { display: grid; grid-template-columns: 92px minmax(0,1fr) 34px; align-items: center; gap: 8px; font-size: 13px; }
+.comp .cv { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 8px 10px 8px 0; white-space: nowrap; }
+td { padding: 9px 10px 9px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+td.r, th.r { text-align: right; }
+.rc td { font-size: 13px; }
+.rc .better { color: var(--good); font-weight: 600; }
+.rc .worse { color: var(--worse); font-weight: 600; }
+.rc .same { color: var(--ink-2); }
+.rc .nodata { color: var(--muted); }
+
+.energy-wrap { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 860px) { .energy-wrap { grid-template-columns: 1fr; } }
+.breakdown { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: 96px minmax(0,1fr) 64px; gap: 8px; align-items: center; font-size: 13px; }
+.bar-track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--s-orange); border-radius: 5px; }
+.calc { display: flex; flex-direction: column; gap: 12px; }
+.calc .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.calc label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.calc input { min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 10px; font: 500 16px var(--font-body);
+  background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; width: 100%; }
+.calc .result { font-family: var(--font-display); font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.doctor { font-size: 13px; color: var(--ink-2); background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app">
+  <p class="banner" role="note"><strong>Preview with sample data.</strong> Every number on this page is invented so you can try the design. Your Garmin data isn't connected.</p>
+
+  <header class="top" id="header">
+    <div class="meta">
+      <p class="eyebrow">Health report</p>
+      <h1>How I'm doing</h1>
+      <p class="sub" id="updated">Sample data through Nov 12, 2026</p>
+    </div>
+    <div class="seg" role="group" aria-label="Time range" id="range">
+      <button type="button" data-days="30">30 d</button>
+      <button type="button" data-days="90">90 d</button>
+      <button type="button" data-days="365">1 y</button>
+      <button type="button" data-days="0">All</button>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-index" id="health-index">
+    <div class="sec-head">
+      <h2 id="h-index">Health trend</h2>
+      <p class="sub">Resting heart rate, HRV, sleep and weight, each compared with your own normal over the 6 months before. 50 means "same as your normal"; higher is better.</p>
+    </div>
+    <div class="card index-wrap">
+      <figure>
+        <figcaption><span class="index-now"><span class="big" id="index-now">–</span><span class="unit" id="index-change"></span></span></figcaption>
+        <div class="chart" id="c-index" role="img" aria-label="Weekly health trend index"></div>
+        <p class="note">Dashed line at 50 is your normal. Personal index from your own data, not a medical score. <span id="index-span"></span></p>
+      </figure>
+      <div class="components" aria-label="What the index is made of">
+        <p class="eyebrow">Made of, this week</p>
+        <div id="components"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Headline numbers" id="tiles">
+    <div class="tiles" id="tile-row"></div>
+  </section>
+
+  <section aria-labelledby="h-trends" id="health-trends">
+    <div class="sec-head">
+      <h2 id="h-trends">Health trends</h2>
+      <p class="sub">Thin lines are daily values, bold lines are 7-day averages. Breaks are days with no data.</p>
+    </div>
+    <div class="grid2">
+      <figure class="card"><figcaption><h3>Resting heart rate</h3><span class="unit">bpm</span></figcaption><div class="chart" id="c-rhr"></div></figure>
+      <figure class="card"><figcaption><h3>Overnight HRV</h3><span class="unit">ms · shaded band is your usual range</span></figcaption><div class="chart" id="c-hrv"></div></figure>
+      <figure class="card"><figcaption><h3>Sleep</h3><span class="unit">hours · dashed lines mark your 7–9 h target</span></figcaption><div class="chart" id="c-sleep"></div></figure>
+      <figure class="card"><figcaption><h3>Weight</h3><span class="unit">lb · dots are weigh-ins</span></figcaption><div class="chart" id="c-weight"></div></figure>
+    </div>
+    <div class="card">
+      <div class="sec-head" style="margin-bottom:10px">
+        <h3>Month by month</h3>
+        <p class="note">Each month compared with the 6 months before it. "Better" means more than half your usual day-to-day spread in the good direction. Weight is set to "maintain", so steady counts as good.</p>
+      </div>
+      <div class="table-scroll"><table class="rc" id="report-card"></table></div>
+    </div>
+    <p class="doctor">These charts show patterns in your own numbers. If a change worries you, talk to a doctor.</p>
+  </section>
+
+  <section aria-labelledby="h-recovery" id="recovery">
+    <div class="sec-head">
+      <h2 id="h-recovery">Recovery</h2>
+      <p class="sub">Weekly training load next to how you slept and recovered. Each chart has its own scale; weeks line up.</p>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <figure><figcaption><h3>Training load</h3><span class="unit">Garmin load, summed per week</span></figcaption><div class="chart" id="c-load"></div></figure>
+      <figure><figcaption><h3>HRV</h3><span class="unit">ms, weekly average</span></figcaption><div class="chart" id="c-whrv"></div></figure>
+      <figure><figcaption><h3>Sleep score</h3><span class="unit">weekly average, 0–100</span></figcaption><div class="chart" id="c-wsleep"></div></figure>
+      <p class="callout" id="corr"></p>
+    </div>
+    <figure class="card"><figcaption><h3>Stress and Body Battery</h3><span class="key"><i style="border-color:var(--s-orange)"></i>Average stress</span><span class="key"><i style="border-color:var(--s-blue)"></i>Body Battery high</span><span class="unit">both 0–100, 7-day averages</span></figcaption><div class="chart" id="c-stress"></div></figure>
+  </section>
+
+  <section aria-labelledby="h-energy" id="energy">
+    <div class="sec-head">
+      <h2 id="h-energy">Daily energy</h2>
+      <p class="sub">About how many calories each day needed: resting burn, plus steps, plus workouts, plus about 10% for digesting food.</p>
+    </div>
+    <div class="energy-wrap">
+      <figure class="card">
+        <figcaption><h3>Estimated calories needed</h3><span class="key"><i style="border-color:var(--s-orange)"></i>Our estimate</span><span class="key"><i class="thin" style="border-color:var(--ink-2);opacity:1;border-top-style:dashed"></i>Garmin's total</span><span class="unit">kcal per day · bold lines are 7-day averages, the faint line is each day</span></figcaption>
+        <div class="chart" id="c-energy"></div>
+        <div class="breakdown" id="breakdown" aria-live="polite"></div>
+        <p class="note">Hover or tap a day to see its breakdown.</p>
+      </figure>
+      <div class="card calc">
+        <h3>Calculator</h3>
+        <p class="note">What would a day like this need, at your current weight?</p>
+        <div class="fields">
+          <label for="calc-steps">Steps (not counting runs)<input id="calc-steps" type="number" inputmode="numeric" min="0" max="60000" step="500" value="9000"></label>
+          <label for="calc-miles">Run (miles)<input id="calc-miles" type="number" inputmode="decimal" min="0" max="40" step="0.5" value="0"></label>
+        </div>
+        <p><span class="result num" id="calc-out">–</span> <span class="unit">kcal</span></p>
+        <p class="note" id="calc-detail"></p>
+        <p class="doctor">Estimate, typically within ±10–20% for an individual. Not dietary advice.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-running" id="running">
+    <div class="sec-head">
+      <h2 id="h-running">Running</h2>
+      <p class="sub">Volume, aerobic fitness, and how fast you run at an easy heart rate.</p>
+    </div>
+    <div class="grid3">
+      <figure class="card"><figcaption><h3>Weekly distance</h3><span class="unit">miles</span></figcaption><div class="chart" id="c-miles"></div><p class="note num" id="miles-note"></p></figure>
+      <figure class="card"><figcaption><h3>Easy pace at 140–150 bpm</h3><span class="unit">min/mile · lower is faster</span></figcaption><div class="chart" id="c-pace"></div><p class="note num" id="pace-note"></p></figure>
+      <figure class="card"><figcaption><h3>VO₂ max</h3><span class="unit">Garmin estimate</span></figcaption><div class="chart" id="c-vo2"></div><p class="note num" id="vo2-note"></p></figure>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:6px">Recent runs</h3>
+      <div class="table-scroll"><table id="runs"></table></div>
+    </div>
+  </section>
+
+  <footer id="footer">
+    <p class="note" style="max-width:72ch">Trends and correlations from your own data, not diagnoses. Correlations don't mean one thing causes another. If something here worries you, talk to a doctor.</p>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6.16/dist/plot.umd.min.js"></script>
+<script>
+(() => {
+"use strict";
+/* ---------- helpers ---------- */
+const DAY = 86400000;
+const KG_TO_LB = 2.20462, M_PER_MI = 1609.344;
+const isNum = v => typeof v === "number" && Number.isFinite(v);
+const vals = a => a.filter(isNum);
+const mean = a => { const v = vals(a); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : NaN; };
+const median = a => { const v = vals(a).sort((x, y) => x - y); if (!v.length) return NaN; const m = v.length >> 1; return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2; };
+const sd = a => { const v = vals(a); if (v.length < 2) return NaN; const m = mean(v); return Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / (v.length - 1)); };
+const quantile = (a, q) => { const v = vals(a).sort((x, y) => x - y); if (!v.length) return NaN; const p = (v.length - 1) * q, lo = Math.floor(p), hi = Math.ceil(p); return v[lo] + (v[hi] - v[lo]) * (p - lo); };
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const fmtDate = d => d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+const fmtDateY = d => d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+const fmtMonth = d => d.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", year: "numeric" });
+const fmtPace = s => isNum(s) ? `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}` : "–";
+const fmtHM = h => isNum(h) ? `${Math.floor(h)} h ${String(Math.round((h % 1) * 60)).padStart(2, "0")} m` : "–";
+const fmt0 = x => isNum(x) ? Math.round(x).toLocaleString("en-US") : "–";
+const fmt1 = x => isNum(x) ? x.toFixed(1) : "–";
+const sliceVals = (arr, a, b) => { const out = []; for (let i = Math.max(0, a); i <= Math.min(arr.length - 1, b); i++) if (isNum(arr[i])) out.push(arr[i]); return out; };
+
+/* ---------- sample data (seeded, invented) ---------- */
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const rnd = mulberry32(20261113);
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+const PROFILE = { height_cm: 180, birth: Date.UTC(1988, 4, 10), sex: "male" };
+const CONFIG = { sleepBand: [7, 9], easyHr: [140, 150], weightGoal: "maintain" };
+const END = Date.UTC(2026, 10, 12), N = 730;
+const days = [], runs = [], vo2 = [];
+const inRange = (t, y0, m0, d0, y1, m1, d1) => t >= Date.UTC(y0, m0, d0) && t <= Date.UTC(y1, m1, d1);
+
+for (let i = 0; i < N; i++) {
+  const t = END - (N - 1 - i) * DAY, date = new Date(t), f = i / (N - 1), dow = date.getUTCDay();
+  const ill = inRange(t, 2026, 1, 9, 2026, 1, 15);
+  const off = inRange(t, 2026, 6, 2, 2026, 6, 6);
+  const doy = (t - Date.UTC(date.getUTCFullYear(), 0, 1)) / DAY;
+  const d = { i, date, ill, off };
+  if (!off) {
+    d.rhr = Math.round(56.5 - 4.5 * f + gauss() * 1.6 + (ill ? 6 : 0));
+    d.hrv = 49 + 11 * f + gauss() * 5 - (ill ? 14 : 0);
+    d.sleep = clamp(6.75 + 0.45 * f + (dow === 0 || dow === 6 ? 0.35 : 0) + gauss() * 0.55 + (ill ? 0.6 : 0), 4.2, 9.8);
+    d.sleepScore = Math.round(clamp(55 + (d.sleep - 6) * 12 + gauss() * 5, 38, 97));
+    d.stress = clamp(32 - 6 * f + gauss() * 5 + (ill ? 10 : 0), 8, 80);
+    d.bbHigh = clamp(70 + 14 * f + (d.sleep - 7) * 6 + gauss() * 6 - (ill ? 15 : 0), 25, 100);
+    d.walkSteps = Math.max(1500, Math.round(7600 + 1500 * f + gauss() * 2100 + (dow === 6 ? 1200 : 0) - (ill ? 4500 : 0)));
+    if (rnd() < 0.75) d.weighIn = 76 - 3 * f + 0.7 * Math.sin(2 * Math.PI * doy / 365 + 1.2) + gauss() * 0.35;
+    d.bmrGarmin = 1745 - 20 * f + gauss() * 8;
+  }
+  d.runs = [];
+  if (!off && !ill) {
+    let kind = null;
+    if (dow === 2 && rnd() > 0.12) kind = "Easy";
+    else if (dow === 4 && rnd() > 0.15) kind = rnd() > 0.5 ? "Tempo" : "Intervals";
+    else if (dow === 6 && rnd() > 0.55) kind = "Easy";
+    else if (dow === 0 && rnd() > 0.12) kind = "Long";
+    if (kind) {
+      let miles, pace, hr;
+      if (kind === "Easy") { miles = 3.5 + rnd() * 2; pace = 592 - 34 * f + gauss() * 11; hr = 145 + gauss() * 3.5; }
+      else if (kind === "Long") { miles = 7 + 3 * f + rnd() * 2; pace = 605 - 30 * f + gauss() * 10; hr = 149 + gauss() * 3; }
+      else { miles = 5 + rnd() * 2; pace = 505 - 25 * f + gauss() * 10; hr = 160 + gauss() * 3.5; }
+      const minutes = miles * pace / 60;
+      const run = { date, kind, miles, pace, hr: Math.round(hr), minutes,
+        kcal: miles * (106 + gauss() * 5) * ((76 - 3 * f) / 75), steps: Math.round(minutes * 168),
+        load: Math.round(minutes * Math.max(0.6, (hr - 95) / 22)) };
+      d.runs.push(run); runs.push(run);
+    }
+  }
+  if (i % 41 === 7 && !off) vo2.push({ date, value: Math.round(48 + 3.2 * f + gauss() * 0.3) });
+  days.push(d);
+}
+/* recovery link in the sample: heavier recent load nudges HRV down */
+for (let i = 0; i < N; i++) {
+  let load7 = 0; for (let j = Math.max(0, i - 6); j <= i; j++) for (const r of days[j].runs) load7 += r.load;
+  if (isNum(days[i].hrv)) days[i].hrv = Math.round(days[i].hrv - 0.03 * (load7 - 330));
+  const d = days[i];
+  if (!d.off) {
+    const runSteps = d.runs.reduce((s, r) => s + r.steps, 0), runM = d.runs.reduce((s, r) => s + r.miles * M_PER_MI, 0);
+    d.steps = d.walkSteps + runSteps; d.runSteps = runSteps;
+    d.distance = d.walkSteps * 0.76 + runM;
+    const walkK = d.walkSteps * 0.76 / 1000 * 75 * 0.5 * 1.25;
+    d.garminTotal = d.bmrGarmin + walkK + d.runs.reduce((s, r) => s + r.kcal, 0) + 120 + gauss() * 60;
+  }
+}
+
+/* ---------- derived series (the spec's rules) ---------- */
+const col = k => days.map(d => isNum(d[k]) ? d[k] : null);
+function rolling7(arr, minN = 4) { return arr.map((_, i) => { const v = sliceVals(arr, i - 6, i); return v.length >= minN ? mean(v) : null; }); }
+const S = { rhr: col("rhr"), hrv: col("hrv"), sleep: col("sleep"), sleepScore: col("sleepScore"), stress: col("stress"), bb: col("bbHigh"), steps: col("steps"), weighIn: col("weighIn") };
+const A = { rhr: rolling7(S.rhr), hrv: rolling7(S.hrv), sleep: rolling7(S.sleep), stress: rolling7(S.stress), bb: rolling7(S.bb) };
+/* weight: 7-day average of weigh-ins (needs 4), carried forward up to 14 days */
+A.weight = (() => { const r = rolling7(S.weighIn); let last = null, age = 99; return r.map(v => { if (isNum(v)) { last = v; age = 0; return v; } age++; return age <= 14 ? last : null; }); })();
+
+/* health index (spec §8.2) */
+function compScore(arr, i, kind) {
+  const cur = sliceVals(arr, i - 27, i); if (cur.length < 14) return NaN;
+  const base = sliceVals(arr, i - 28 - 179, i - 28); if (base.length < 60) return NaN;
+  const m = mean(cur), b = median(base), s = sd(base); if (!isNum(s) || s === 0) return NaN;
+  let z;
+  if (kind === "lower") z = (b - m) / s;
+  else if (kind === "higher") z = (m - b) / s;
+  else if (kind === "band") { const [lo, hi] = CONFIG.sleepBand, dist = x => Math.max(0, lo - x, x - hi); z = (dist(b) - dist(m)) / s; }
+  else if (kind === "maintain") z = -Math.abs(m - b) / s;
+  else if (kind === "lose") z = (b - m) / s; else z = (m - b) / s;
+  return clamp(50 + 15 * z, 0, 100);
+}
+const weekly = [];
+for (let i = 0; i < N; i++) {
+  if (days[i].date.getUTCDay() !== 0 && i !== N - 1) continue; /* week ends Sunday, plus the latest day */
+  const c = { rhr: compScore(S.rhr, i, "lower"), hrv: compScore(S.hrv, i, "higher"), sleep: compScore(S.sleep, i, "band"), weight: compScore(S.weighIn, i, CONFIG.weightGoal) };
+  const avail = Object.values(c).filter(isNum);
+  weekly.push({ date: days[i].date, i, ...c, index: avail.length >= 3 ? mean(avail) : null });
+}
+
+/* weekly buckets (Mon–Sun) for recovery + miles */
+const weeks = [];
+{ let cur = null;
+  for (const d of days) {
+    const dow = (d.date.getUTCDay() + 6) % 7, start = d.date.getTime() - dow * DAY;
+    if (!cur || cur.start !== start) { cur = { start, s: new Date(start), e: new Date(start + 7 * DAY), load: 0, miles: 0, hrv: [], ss: [], n: 0 }; weeks.push(cur); }
+    for (const r of d.runs) { cur.load += r.load; cur.miles += r.miles; }
+    if (isNum(d.hrv)) cur.hrv.push(d.hrv); if (isNum(d.sleepScore)) cur.ss.push(d.sleepScore); cur.n++;
+  }
+  for (const w of weeks) { w.hrvAvg = w.hrv.length >= 4 ? mean(w.hrv) : null; w.ssAvg = w.ss.length >= 4 ? mean(w.ss) : null; }
+}
+
+/* energy (spec §8.1) */
+const ageOn = t => (t - PROFILE.birth) / (365.2425 * DAY);
+const resting = (kg, t) => 10 * kg + 6.25 * PROFILE.height_cm - 5 * ageOn(t) + (PROFILE.sex === "male" ? 5 : -161);
+const energy = days.map((d, i) => {
+  const kg = A.weight[i];
+  if (!isNum(kg) || !isNum(d.steps)) return { date: d.date, est: null };
+  const rest = resting(kg, d.date.getTime());
+  const stride = d.steps > 0 ? d.distance / d.steps : PROFILE.height_cm * 0.414 / 100;
+  const stepsK = Math.max(0, d.steps - d.runSteps) * stride / 1000 * kg * 0.5;
+  const workK = d.runs.reduce((s, r) => s + (r.kcal - rest / 1440 * r.minutes), 0);
+  return { date: d.date, rest, stepsK, workK, tef: (rest + stepsK + workK) * 0.10, est: (rest + stepsK + workK) * 1.10, garmin: d.garminTotal, steps: d.steps, runMiles: d.runs.reduce((s, r) => s + r.miles, 0) };
+});
+const calc = (() => {
+  const i = N - 1, kg = A.weight[i], rest = resting(kg, days[i].date.getTime());
+  const strides = []; for (let j = N - 30; j < N; j++) if (days[j].steps) strides.push(days[j].distance / days[j].steps);
+  const recent = runs.filter(r => r.date.getTime() > END - 90 * DAY);
+  const own = recent.length >= 5;
+  return { kg, rest, stride: median(strides), tef: 1.10,
+    kcalPerMile: own ? median(recent.map(r => r.kcal / r.miles)) : 1.0 * kg * 1.609344, source: own ? "own" : "fallback", nRuns: recent.length,
+    minPerMile: own ? median(recent.map(r => r.pace / 60)) : 10 };
+})();
+
+/* ---------- state + theme ---------- */
+let rangeDays = 90;
+try { const raw = localStorage.getItem("hd-range"); const saved = Number(raw); if (raw !== null && [30, 90, 365, 0].includes(saved)) rangeDays = saved; } catch (e) {}
+const css = () => { const s = getComputedStyle(document.documentElement); const g = n => s.getPropertyValue(n).trim();
+  return { ink: g("--ink"), ink2: g("--ink-2"), muted: g("--muted"), line: g("--line"), surface: g("--surface"), blue: g("--s-blue"), orange: g("--s-orange"), aqua: g("--s-aqua"), band: g("--band") }; };
+const startOf = (rd, minDays = 0) => { const span = Math.max(rd || N, minDays); return END - (span - 1) * DAY; };
+const widthOf = el => Math.max(260, el.clientWidth);
+
+function basePlot(el, opts, C) {
+  const p = Plot.plot({ width: widthOf(el), height: opts.height || 200, marginLeft: opts.marginLeft ?? 40, marginRight: opts.marginRight ?? 14, marginTop: 10, marginBottom: 26,
+    style: { fontFamily: "Inter, system-ui, sans-serif", fontSize: "12px", color: C.ink2, background: "transparent", overflow: "visible" },
+    x: { type: "utc", label: null, ticks: Math.max(3, Math.floor(widthOf(el) / 110)), ...(opts.x || {}) },
+    y: { label: null, grid: true, nice: true, ticks: 4, ...(opts.y || {}) },
+    marks: opts.marks });
+  p.querySelectorAll("[aria-label='y-grid'] line, [aria-label='y-grid'] path").forEach(n => n.setAttribute("stroke", C.line));
+  el.replaceChildren(p); return p;
+}
+const tipOpts = C => ({ fill: C.surface, stroke: C.line, fontSize: 12 });
+
+/* ---------- renderers ---------- */
+function renderIndex(C) {
+  const el = document.getElementById("c-index");
+  const from = startOf(rangeDays, 365);
+  const rows = weekly.filter(w => w.date.getTime() >= from);
+  basePlot(el, { height: 210, y: { domain: [0, 100], ticks: [0, 25, 50, 75, 100] }, marks: [
+    Plot.ruleY([50], { stroke: C.muted, strokeDasharray: "3,3" }),
+    Plot.lineY(rows, { x: "date", y: "index", stroke: C.blue, strokeWidth: 2.25, curve: "monotone-x" }),
+    Plot.dot(rows.filter((r, k) => k === rows.length - 1), { x: "date", y: "index", r: 4.5, fill: C.blue, stroke: C.surface, strokeWidth: 2 }),
+    Plot.ruleX(rows, Plot.pointerX({ x: "date", stroke: C.line })),
+    Plot.tip(rows, Plot.pointerX({ x: "date", y: "index", ...tipOpts(C), title: r => `Week ending ${fmtDateY(r.date)}\nIndex ${isNum(r.index) ? Math.round(r.index) : "needs more history"}\nResting HR ${fmt0(r.rhr)} · HRV ${fmt0(r.hrv)} · Sleep ${fmt0(r.sleep)} · Weight ${fmt0(r.weight)}` }))
+  ] }, C);
+  const last = weekly[weekly.length - 1], prev = weekly.find(w => w.date.getTime() >= END - 90 * DAY);
+  document.getElementById("index-now").textContent = isNum(last.index) ? Math.round(last.index) : "–";
+  document.getElementById("index-change").textContent = isNum(last.index) && isNum(prev?.index) ? `${last.index >= prev.index ? "up" : "down"} ${Math.abs(Math.round(last.index - prev.index))} from 90 days ago` : "";
+  document.getElementById("index-span").textContent = rangeDays && rangeDays < 365 ? "Shown over the last 12 months so the trend is visible." : "";
+  const comps = [["rhr", "Resting HR"], ["hrv", "HRV"], ["sleep", "Sleep"], ["weight", "Weight"]];
+  const box = document.getElementById("components"); box.replaceChildren();
+  for (const [k, label] of comps) {
+    const row = document.createElement("div"); row.className = "comp";
+    const name = document.createElement("span"); name.textContent = label;
+    const sp = document.createElement("div"); sp.setAttribute("aria-hidden", "true");
+    const v = document.createElement("span"); v.className = "cv"; v.textContent = isNum(last[k]) ? Math.round(last[k]) : "–";
+    row.append(name, sp, v); box.append(row);
+    const pr = rows.filter(r => isNum(r[k]));
+    sp.replaceChildren(Plot.plot({ width: Math.max(80, sp.clientWidth || 140), height: 34, margin: 3, axis: null, x: { type: "utc" }, y: { domain: [0, 100] }, style: { background: "transparent" },
+      marks: [Plot.ruleY([50], { stroke: C.line }), Plot.lineY(pr, { x: "date", y: k, stroke: C.blue, strokeWidth: 1.5, curve: "monotone-x" })] }));
+  }
+}
+
+function renderTiles() {
+  const i = N - 1, j = N - 1 - 90;
+  const t = [
+    { label: "Resting heart rate", v: A.rhr[i], p: A.rhr[j], f: x => fmt0(x), unit: "bpm", d: x => `${Math.abs(Math.round(x))} bpm` },
+    { label: "Overnight HRV", v: A.hrv[i], p: A.hrv[j], f: x => fmt0(x), unit: "ms", d: x => `${Math.abs(Math.round(x))} ms` },
+    { label: "Sleep, 7-day average", v: A.sleep[i], p: A.sleep[j], f: fmtHM, unit: "", d: x => `${Math.abs(Math.round(x * 60))} min` },
+    { label: "Weight, 7-day average", v: isNum(A.weight[i]) ? A.weight[i] * KG_TO_LB : null, p: isNum(A.weight[j]) ? A.weight[j] * KG_TO_LB : null, f: fmt1, unit: "lb", d: x => `${Math.abs(x).toFixed(1)} lb` }
+  ];
+  const row = document.getElementById("tile-row"); row.replaceChildren();
+  for (const x of t) {
+    const c = document.createElement("div"); c.className = "card tile";
+    const delta = x.v - x.p;
+    c.innerHTML = `<span class="label"></span><span class="value"></span><span class="delta"></span>`;
+    c.querySelector(".label").textContent = x.label;
+    c.querySelector(".value").textContent = isNum(x.v) ? x.f(x.v) : "No data yet";
+    if (x.unit && isNum(x.v)) { const s = document.createElement("small"); s.textContent = x.unit; c.querySelector(".value").append(s); }
+    const dtxt = isNum(delta) ? x.d(delta) : ""; c.querySelector(".delta").textContent = !isNum(delta) ? "" : /^0(\.0)? /.test(dtxt) ? "→ about the same as 90 days ago" : `${delta < 0 ? "↓" : "↑"} ${dtxt} vs 90 days ago`;
+    row.append(c);
+  }
+}
+
+function dailyChart(id, raw, avg, C, o = {}) {
+  const el = document.getElementById(id), from = startOf(rangeDays);
+  const rows = days.map((d, i) => ({ date: d.date, raw: isNum(raw[i]) ? raw[i] * (o.k || 1) : undefined, avg: isNum(avg[i]) ? avg[i] * (o.k || 1) : undefined })).filter(r => r.date.getTime() >= from);
+  const marks = [];
+  if (o.band) marks.push(Plot.rectY([o.band], { x1: rows[0].date, x2: rows[rows.length - 1].date, y1: "lo", y2: "hi", fill: C.band }));
+  if (o.refs) marks.push(Plot.ruleY(o.refs, { stroke: C.orange, strokeDasharray: "4,4", strokeOpacity: 0.8 }));
+  if (o.dots) marks.push(Plot.dot(rows.filter(r => isNum(r.raw)), { x: "date", y: "raw", r: 2.2, fill: C.muted, fillOpacity: 0.55 }));
+  else marks.push(Plot.lineY(rows, { x: "date", y: "raw", stroke: C.blue, strokeOpacity: 0.38, strokeWidth: 1.1 }));
+  marks.push(Plot.lineY(rows, { x: "date", y: "avg", stroke: o.color || C.blue, strokeWidth: 2.25, curve: "monotone-x" }));
+  marks.push(Plot.ruleX(rows, Plot.pointerX({ x: "date", stroke: C.line })));
+  marks.push(Plot.dot(rows, Plot.pointerX({ x: "date", y: "avg", r: 4.5, fill: o.color || C.blue, stroke: C.surface, strokeWidth: 2 })));
+  marks.push(Plot.tip(rows, Plot.pointerX({ x: "date", y: "avg", ...tipOpts(C), title: r => `${fmtDateY(r.date)}\nDay: ${isNum(r.raw) ? o.fmt(r.raw) : "no data"}\n7-day avg: ${isNum(r.avg) ? o.fmt(r.avg) : "–"}` })));
+  basePlot(el, { height: 190, y: o.y, marks }, C);
+}
+
+function renderTrends(C) {
+  const hrvBand = { lo: quantile(sliceVals(S.hrv, N - 180, N - 1), 0.25), hi: quantile(sliceVals(S.hrv, N - 180, N - 1), 0.75) };
+  dailyChart("c-rhr", S.rhr, A.rhr, C, { fmt: x => `${Math.round(x)} bpm`, y: { zero: false } });
+  dailyChart("c-hrv", S.hrv, A.hrv, C, { fmt: x => `${Math.round(x)} ms`, band: hrvBand, y: { zero: false } });
+  dailyChart("c-sleep", S.sleep, A.sleep, C, { fmt: fmtHM, refs: CONFIG.sleepBand, y: { domain: [4, 10] } });
+  dailyChart("c-weight", S.weighIn, A.weight, C, { k: KG_TO_LB, dots: true, color: C.ink2, fmt: x => `${x.toFixed(1)} lb`, y: { zero: false } });
+}
+
+function renderReportCard() {
+  const metrics = [
+    ["Resting HR", i => S.rhr[i], "lower"], ["HRV", i => S.hrv[i], "higher"], ["Sleep", i => S.sleep[i], "band"],
+    ["Weight", i => S.weighIn[i], CONFIG.weightGoal], ["Steps", i => S.steps[i], "higher"], ["Weekly miles", null, "higher"]
+  ];
+  const months = []; const endD = new Date(END);
+  for (let k = 11; k >= 0; k--) months.push(new Date(Date.UTC(endD.getUTCFullYear(), endD.getUTCMonth() - k, 1)));
+  const idx = t => Math.round((t - (END - (N - 1) * DAY)) / DAY);
+  const rowsHtml = [];
+  const sym = { better: "↑ Better", same: "→ Same", worse: "↓ Worse", nodata: "– Not enough data" };
+  for (const m of months.reverse()) {
+    const m0 = m.getTime(), m1 = Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1) - DAY;
+    const b0 = Date.UTC(m.getUTCFullYear(), m.getUTCMonth() - 6, 1), b1 = m0 - DAY;
+    const cells = metrics.map(([, get, kind]) => {
+      let cur, base;
+      if (!get) {
+        const wk = (a, b) => weeks.filter(w => w.start >= a && w.start <= b && w.n === 7).map(w => w.miles);
+        cur = wk(m0, m1); base = wk(b0, b1); if (cur.length < 2 || base.length < 8) return "nodata";
+      } else {
+        cur = []; base = [];
+        for (let i = idx(m0); i <= Math.min(N - 1, idx(m1)); i++) if (i >= 0 && isNum(get(i))) cur.push(get(i));
+        for (let i = Math.max(0, idx(b0)); i <= idx(b1); i++) if (isNum(get(i))) base.push(get(i));
+        if (cur.length < 10 || base.length < 30) return "nodata";
+      }
+      const mc = mean(cur), mb = mean(base), s = sd(base); if (!isNum(s) || s === 0) return "nodata";
+      let z;
+      if (kind === "lower") z = (mb - mc) / s; else if (kind === "higher") z = (mc - mb) / s;
+      else if (kind === "band") { const [lo, hi] = CONFIG.sleepBand, dist = x => Math.max(0, lo - x, x - hi); z = (dist(mb) - dist(mc)) / s; }
+      else if (kind === "maintain") return Math.abs(mc - mb) / s <= 0.5 ? "same" : "worse";
+      else if (kind === "lose") z = (mb - mc) / s; else z = (mc - mb) / s;
+      return z > 0.5 ? "better" : z < -0.5 ? "worse" : "same";
+    });
+    rowsHtml.push(`<tr><td>${fmtMonth(m)}${m1 > END ? " (so far)" : ""}</td>${cells.map(c => `<td class="${c}">${sym[c]}</td>`).join("")}</tr>`);
+  }
+  document.getElementById("report-card").innerHTML = `<thead><tr><th>Month</th>${metrics.map(m => `<th>${m[0]}</th>`).join("")}</tr></thead><tbody>${rowsHtml.join("")}</tbody>`;
+}
+
+function weekChart(id, key, C, o) {
+  const el = document.getElementById(id), from = startOf(rangeDays, 84);
+  const rows = weeks.filter(w => w.start >= from - 6 * DAY).map(w => ({ s: w.s, e: w.e, mid: new Date(w.start + 3.5 * DAY), v: w[key] }));
+  const xdom = [rows[0].s, rows[rows.length - 1].e];
+  const marks = o.bars
+    ? [Plot.rectY(rows, { x1: "s", x2: "e", y: "v", fill: o.color, insetLeft: rows.length > 60 ? 0.25 : 1, insetRight: rows.length > 60 ? 0.25 : 1, rx: rows.length > 60 ? 0 : 2 }), Plot.ruleY([0], { stroke: C.line })]
+    : [Plot.lineY(rows, { x: "mid", y: "v", stroke: o.color, strokeWidth: 2, curve: "monotone-x" }), Plot.dot(rows, { x: "mid", y: "v", r: rows.length > 30 ? 0 : 2.5, fill: o.color })];
+  if (o.endLabel) { const last = [...rows].reverse().find(r => isNum(r.v)); if (last) marks.push(Plot.text([last], { x: "mid", y: "v", text: r => Math.round(r.v), dx: 8, textAnchor: "start", fill: C.ink, fontWeight: 600 })); }
+  marks.push(Plot.ruleX(rows, Plot.pointerX({ x: "mid", stroke: C.line })));
+  marks.push(Plot.tip(rows, Plot.pointerX({ x: "mid", y: "v", ...tipOpts(C), title: r => `Week of ${fmtDateY(r.s)}\n${o.name}: ${isNum(r.v) ? Math.round(r.v) : "no data"}` })));
+  basePlot(el, { height: o.height || 120, marginRight: o.endLabel ? 34 : 14, x: { domain: xdom }, y: o.y || { zero: false }, marks }, C);
+}
+
+function renderRecovery(C) {
+  weekChart("c-load", "load", C, { bars: true, color: C.orange, name: "Training load", y: { zero: true } });
+  weekChart("c-whrv", "hrvAvg", C, { color: C.blue, name: "HRV avg (ms)" });
+  weekChart("c-wsleep", "ssAvg", C, { color: C.aqua, name: "Sleep score", endLabel: true });
+  /* correlation: this week's load vs next week's HRV, over the selected range (min 12 weeks) */
+  const from = startOf(rangeDays, 84), pairs = [];
+  for (let k = 0; k < weeks.length - 1; k++) if (weeks[k].start >= from && isNum(weeks[k + 1].hrvAvg) && weeks[k].n === 7) pairs.push([weeks[k].load, weeks[k + 1].hrvAvg]);
+  const xs = pairs.map(p => p[0]), ys = pairs.map(p => p[1]), mx = mean(xs), my = mean(ys);
+  let num = 0, dx = 0, dy = 0; for (const [x, y] of pairs) { num += (x - mx) * (y - my); dx += (x - mx) ** 2; dy += (y - my) ** 2; }
+  const rr = pairs.length >= 8 && dx && dy ? num / Math.sqrt(dx * dy) : NaN;
+  const words = !isNum(rr) ? "" : Math.abs(rr) < 0.15 ? "barely related" : rr < 0 ? `weeks with more load tended to be followed by lower HRV (r = ${rr.toFixed(2)})` : `weeks with more load tended to be followed by higher HRV (r = ${rr.toFixed(2)})`;
+  document.getElementById("corr").textContent = isNum(rr) ? `Over ${pairs.length} weeks, ${words}. Correlation, not cause.` : "Not enough weeks in this range to compare load and HRV.";
+  /* stress + body battery: same 0–100 scale, one axis */
+  const el = document.getElementById("c-stress"), fromD = startOf(rangeDays);
+  const rows = days.map((d, i) => ({ date: d.date, stress: A.stress[i] ?? undefined, bb: A.bb[i] ?? undefined })).filter(r => r.date.getTime() >= fromD);
+  basePlot(el, { height: 170, y: { domain: [0, 100] }, marks: [
+    Plot.lineY(rows, { x: "date", y: "bb", stroke: C.blue, strokeWidth: 2, curve: "monotone-x" }),
+    Plot.lineY(rows, { x: "date", y: "stress", stroke: C.orange, strokeWidth: 2, curve: "monotone-x" }),
+    Plot.ruleX(rows, Plot.pointerX({ x: "date", stroke: C.line })),
+    Plot.tip(rows, Plot.pointerX({ x: "date", y: "bb", ...tipOpts(C), title: r => `${fmtDateY(r.date)}\nBody Battery high: ${fmt0(r.bb)}\nAverage stress: ${fmt0(r.stress)}` }))
+  ] }, C);
+}
+
+let selectedEnergy = null;
+function renderBreakdown(e) {
+  const box = document.getElementById("breakdown");
+  if (!e || !isNum(e.est)) { box.textContent = "No estimate for this day (missing data)."; return; }
+  const parts = [["Resting", e.rest], ["Steps", e.stepsK], ["Workouts", e.workK], ["Digestion", e.tef]];
+  const max = Math.max(...parts.map(p => p[1]));
+  box.innerHTML = `<p style="font-size:14px"><strong>${fmtDateY(e.date)}</strong>: <span class="num">${fmt0(e.est)}</span> kcal estimated · Garmin <span class="num">${fmt0(e.garmin)}</span> · ${fmt0(e.steps)} steps${e.runMiles ? `, ${e.runMiles.toFixed(1)} mi run` : ""}</p>` +
+    parts.map(([n, v]) => `<div class="bar-row"><span>${n}</span><span class="bar-track"><span class="bar-fill" style="display:block;width:${(100 * v / max).toFixed(1)}%"></span></span><span class="num" style="text-align:right">${fmt0(v)}</span></div>`).join("");
+}
+function renderEnergy(C) {
+  const el = document.getElementById("c-energy"), from = startOf(rangeDays);
+  const estAvg = rolling7(energy.map(e => isNum(e.est) ? e.est : null)), gAvg = rolling7(energy.map(e => isNum(e.garmin) ? e.garmin : null));
+  const rows = energy.map((e, i) => ({ ...e, est: isNum(e.est) ? e.est : undefined, garmin: isNum(e.garmin) ? e.garmin : undefined, estAvg: estAvg[i] ?? undefined, gAvg: gAvg[i] ?? undefined })).filter(e => e.date.getTime() >= from);
+  const p = basePlot(el, { height: 210, marginLeft: 46, y: { zero: false, tickFormat: d => d.toLocaleString("en-US") }, marks: [
+    Plot.lineY(rows, { x: "date", y: "est", stroke: C.orange, strokeOpacity: 0.3, strokeWidth: 1 }),
+    Plot.lineY(rows, { x: "date", y: "gAvg", stroke: C.ink2, strokeWidth: 1.5, strokeDasharray: "4,3", curve: "monotone-x" }),
+    Plot.lineY(rows, { x: "date", y: "estAvg", stroke: C.orange, strokeWidth: 2.25, curve: "monotone-x" }),
+    Plot.ruleX(rows, Plot.pointerX({ x: "date", stroke: C.line })),
+    Plot.dot(rows, Plot.pointerX({ x: "date", y: "est", r: 4.5, fill: C.orange, stroke: C.surface, strokeWidth: 2 })),
+    Plot.tip(rows, Plot.pointerX({ x: "date", y: "est", ...tipOpts(C), title: r => `${fmtDateY(r.date)}\nEstimate: ${fmt0(r.est)} kcal\nGarmin: ${fmt0(r.garmin)} kcal` }))
+  ] }, C);
+  p.addEventListener("input", () => { if (p.value) { selectedEnergy = p.value; renderBreakdown(p.value); } });
+  renderBreakdown(selectedEnergy || [...energy].reverse().find(e => isNum(e.est)));
+}
+function renderCalc() {
+  const steps = Math.max(0, Number(document.getElementById("calc-steps").value) || 0);
+  const miles = Math.max(0, Number(document.getElementById("calc-miles").value) || 0);
+  const stepsK = steps * calc.stride / 1000 * calc.kg * 0.5;
+  const runK = miles * (calc.kcalPerMile - calc.rest / 1440 * calc.minPerMile);
+  const est = (calc.rest + stepsK + runK) * calc.tef;
+  document.getElementById("calc-out").textContent = fmt0(est);
+  document.getElementById("calc-detail").textContent =
+    `Resting ${fmt0(calc.rest)} + steps ${fmt0(stepsK)} + run ${fmt0(runK)}, plus 10% for digestion. Uses ${(calc.kg * KG_TO_LB).toFixed(1)} lb, a ${(calc.stride / 0.3048).toFixed(2)} ft stride, and ${calc.source === "own" ? `your median ${fmt0(calc.kcalPerMile)} kcal per mile from ${calc.nRuns} recent runs` : "a standard 1 kcal per kg per km for running"}.`;
+}
+
+function renderRunning(C) {
+  weekChart("c-miles", "miles", C, { bars: true, color: C.blue, name: "Miles", y: { zero: true }, height: 170 });
+  const from = startOf(rangeDays, 84);
+  const recentW = weeks.slice(-14, -1);
+  document.getElementById("miles-note").textContent = `This week so far ${weeks[weeks.length - 1].miles.toFixed(1)} mi · 13-week average ${mean(recentW.map(w => w.miles)).toFixed(1)} mi`;
+  const easy = runs.filter(r => r.hr >= CONFIG.easyHr[0] && r.hr <= CONFIG.easyHr[1]);
+  const med = easy.map((r, k) => ({ date: r.date, pace: r.pace / 60, med: median(easy.slice(Math.max(0, k - 7), k + 1).map(x => x.pace)) / 60, hr: r.hr, miles: r.miles }));
+  const er = med.filter(r => r.date.getTime() >= from);
+  basePlot(document.getElementById("c-pace"), { height: 170, y: { zero: false, tickFormat: v => fmtPace(v * 60) }, marks: [
+    Plot.dot(er, { x: "date", y: "pace", r: 3, fill: C.blue, fillOpacity: 0.35 }),
+    Plot.lineY(er, { x: "date", y: "med", stroke: C.blue, strokeWidth: 2, curve: "monotone-x" }),
+    Plot.tip(er, Plot.pointer({ x: "date", y: "pace", ...tipOpts(C), title: r => `${fmtDateY(r.date)}\n${fmtPace(r.pace * 60)} /mi at ${r.hr} bpm, ${r.miles.toFixed(1)} mi\n8-run median ${fmtPace(r.med * 60)}` }))
+  ] }, C);
+  const firstE = med.find(r => r.date.getTime() >= END - 90 * DAY), lastE = med[med.length - 1];
+  document.getElementById("pace-note").textContent = firstE && lastE ? `Median now ${fmtPace(lastE.med * 60)} /mi · 90 days ago ${fmtPace(firstE.med * 60)} /mi` : "";
+  const vr = vo2.filter(v => v.date.getTime() >= startOf(rangeDays, 365));
+  const vstep = [...vr, { date: new Date(END), value: vr[vr.length - 1].value }];
+  basePlot(document.getElementById("c-vo2"), { height: 170, y: { zero: false, ticks: 4 }, marks: [
+    Plot.lineY(vstep, { x: "date", y: "value", stroke: C.blue, strokeWidth: 2, curve: "step-after" }),
+    Plot.dot(vr, { x: "date", y: "value", r: 3.5, fill: C.blue, stroke: C.surface, strokeWidth: 1.5 }),
+    Plot.tip(vr, Plot.pointer({ x: "date", y: "value", ...tipOpts(C), title: r => `${fmtDateY(r.date)}\nVO₂ max ${r.value}` }))
+  ] }, C);
+  const lv = vo2[vo2.length - 1];
+  document.getElementById("vo2-note").textContent = `Latest ${lv.value}, as of ${fmtDateY(lv.date)}. Updates when a new Garmin export is imported.`;
+  const rr = runs.slice(-10).reverse();
+  document.getElementById("runs").innerHTML = `<thead><tr><th>Date</th><th>Type</th><th class="r">Distance</th><th class="r">Pace</th><th class="r">Avg HR</th><th class="r">Calories</th><th class="r">Load</th></tr></thead><tbody>` +
+    rr.map(r => `<tr><td>${r.date.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}</td><td>${r.kind}</td><td class="r">${r.miles.toFixed(1)} mi</td><td class="r">${fmtPace(r.pace)} /mi</td><td class="r">${r.hr}</td><td class="r">${fmt0(r.kcal)}</td><td class="r">${r.load}</td></tr>`).join("") + `</tbody>`;
+}
+
+/* ---------- wiring ---------- */
+function renderAll() {
+  if (!window.Plot) { document.getElementById("c-index").textContent = "Charts couldn't load. Check your connection and reload."; return; }
+  const C = css();
+  document.querySelectorAll("#range button").forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.days) === rangeDays)));
+  renderIndex(C); renderTiles(); renderTrends(C); renderReportCard(); renderRecovery(C); renderEnergy(C); renderCalc(); renderRunning(C);
+}
+document.getElementById("range").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  rangeDays = Number(b.dataset.days); try { localStorage.setItem("hd-range", String(rangeDays)); } catch (err) {}
+  renderAll();
+});
+["calc-steps", "calc-miles"].forEach(id => document.getElementById(id).addEventListener("input", renderCalc));
+let rt; const again = () => { clearTimeout(rt); rt = setTimeout(renderAll, 150); };
+new ResizeObserver(again).observe(document.getElementById("app"));
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", again); } catch (e) {}
+new MutationObserver(again).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.getElementById("calc-steps").value = String(Math.round((days[N - 1].steps - days[N - 1].runSteps) / 500) * 500 || 9000);
+renderAll();
+})();
+</script>
