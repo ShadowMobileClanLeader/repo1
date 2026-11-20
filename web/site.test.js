@@ -15,13 +15,14 @@ function allFiles(dir) {
   });
 }
 
-test("vercel.json sets a strict CSP limited to our Supabase project", () => {
+test("vercel.json sets a strict CSP limited to our Supabase project and Plaid", () => {
   const cfg = JSON.parse(readFileSync(join(WEB, "vercel.json"), "utf8"));
   const headers = cfg.headers.find((h) => h.source === "/(.*)").headers;
   const csp = headers.find((h) => h.key === "Content-Security-Policy").value;
   assert.match(csp, /default-src 'self'/);
-  assert.match(csp, /script-src 'self' https:\/\/cdn\.jsdelivr\.net https:\/\/cdnjs\.cloudflare\.com(;|$)/);
-  assert.ok(csp.includes(`connect-src 'self' ${SUPABASE_URL}`));
+  assert.ok(csp.includes("script-src 'self' https://cdn.jsdelivr.net https://cdn.plaid.com;"), "script-src");
+  assert.ok(csp.includes("frame-src https://cdn.plaid.com;"), "frame-src");
+  assert.ok(csp.includes(`connect-src 'self' ${SUPABASE_URL} https://production.plaid.com https://sandbox.plaid.com;`), "connect-src");
   assert.match(csp, /frame-ancestors 'none'/);
   for (const k of ["X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy"]) {
     assert.ok(headers.some((h) => h.key === k), `${k} missing`);

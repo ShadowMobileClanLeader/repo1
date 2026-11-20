@@ -1,4 +1,4 @@
-/* Shared styles — tokens and components from the approved preview (docs/reference/preview.html). */
+/* Shared styles — tokens and chart conventions from the earlier preview (docs/reference/preview.html). */
 :root {
   --bg: #f4f6f4;
   --surface: #fcfcfb;
@@ -80,14 +80,6 @@ figcaption .unit { color: var(--muted); font-size: 13px; }
 .note { font-size: 13px; color: var(--muted); }
 .callout { font-size: 14px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 12px; }
 
-.index-wrap { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 760px) { .index-wrap { grid-template-columns: 1fr; } }
-.index-now { display: flex; align-items: baseline; gap: 10px; }
-.index-now .big { font-family: var(--font-display); font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
-.components { display: flex; flex-direction: column; gap: 10px; }
-.comp { display: grid; grid-template-columns: 92px minmax(0,1fr) 34px; align-items: center; gap: 8px; font-size: 13px; }
-.comp .cv { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-
 .table-scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
 th { text-align: left; font-weight: 500; font-size: 12px; color: var(--muted); padding: 8px 10px 8px 0; white-space: nowrap; }
@@ -99,19 +91,7 @@ td.r, th.r { text-align: right; }
 .rc .same { color: var(--ink-2); }
 .rc .nodata { color: var(--muted); }
 
-.energy-wrap { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
-@media (max-width: 860px) { .energy-wrap { grid-template-columns: 1fr; } }
-.breakdown { display: flex; flex-direction: column; gap: 8px; }
-.bar-row { display: grid; grid-template-columns: 96px minmax(0,1fr) 64px; gap: 8px; align-items: center; font-size: 13px; }
-.bar-track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
-.bar-fill { height: 100%; background: var(--s-orange); border-radius: 5px; }
-.calc { display: flex; flex-direction: column; gap: 12px; }
-.calc .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-.calc label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
-.calc input { min-height: 44px; border: 1px solid var(--line-strong); border-radius: 8px; padding: 0 10px; font: 500 16px var(--font-body);
-  background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; width: 100%; }
-.calc .result { font-family: var(--font-display); font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.doctor { font-size: 13px; color: var(--ink-2); background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+.disclaimer { font-size: 13px; color: var(--ink-2); background: var(--bg); border-radius: 8px; padding: 10px 12px; }
 footer { border-top: 1px solid var(--line); padding-top: 16px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
